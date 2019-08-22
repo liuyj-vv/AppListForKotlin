@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         listBaseAdapter = ListBaseAdapter(dataList)
         listview.adapter = listBaseAdapter
 
-        button_test.setOnClickListener(View.OnClickListener {
+        button_running.setOnClickListener(View.OnClickListener {
             updateDataList()
         })
     }
