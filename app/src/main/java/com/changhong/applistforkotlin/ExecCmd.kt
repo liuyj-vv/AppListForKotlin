@@ -39,9 +39,13 @@ class ExecCmd{
     }
 
     fun waitFor() {
+        println("waitFor 1")
         threadWait?.join()
+        println("waitFor 2")
         threadStdout?.join()
+        println("waitFor 3")
         threadStderr?.join()
+        println("waitFor 4")
     }
 
     fun printExecMessage(tag: String, input: InputStream, execCallback: ExecCallback? = null): Thread {

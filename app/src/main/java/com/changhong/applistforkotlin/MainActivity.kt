@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.support.annotation.RequiresApi
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     val KEY_PROCESS_NAME = "processName"
@@ -21,11 +23,12 @@ class MainActivity : AppCompatActivity() {
     val dataList = arrayListOf<Map<String, Any>>()
     var adapter: ListPsBaseAdapter? = null
     private val execCmd: ExecCmd = ExecCmd()
+    val handler = Handler()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        
+
         button_running.setOnClickListener {
             val adapter = ListBaseAdapter(dataList)
             listview.adapter = adapter
@@ -37,10 +40,9 @@ class MainActivity : AppCompatActivity() {
             adapter = ListPsBaseAdapter(dataList)
             listview.adapter = adapter
             updatePsDataList()
-            adapter?.notifyDataSetChanged()
         }
     }
-    fun updateDataList() {
+    private fun updateDataList() {
         dataList.clear()
         var activityManager:ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         var runningAppProcessInfo = activityManager.runningAppProcesses
@@ -93,14 +95,19 @@ class MainActivity : AppCompatActivity() {
 
     fun updatePsDataList() {
         dataList.clear()
-        execCmd.runExecCmd("ps", object: ExecCallback{
-            override fun std(str: String) {
-                println(str)
-                val arrayStr = str.split("\\s+".toRegex())
-                dataList.add(mapOf(KEY_PROCESS_NAME to arrayStr[arrayStr.size-1]))
+        thread {
+            execCmd.runExecCmd("ps", object: ExecCallback{
+                override fun std(str: String) {
+                    println(str)
+                    val arrayStr = str.split("\\s+".toRegex())
+                    dataList.add(mapOf(KEY_PROCESS_NAME to arrayStr[arrayStr.size-1]))
+                }
+            })
+            execCmd.waitFor()
+            handler.post{
+                adapter?.notifyDataSetChanged()
             }
-        })
-        execCmd.waitFor()
+        }
     }
 
     inner class ListPsBaseAdapter(dataList: List<Map<String, Any>>): BaseAdapter() {
