@@ -102,7 +102,8 @@ class MainActivity : AppCompatActivity() {
         execCmd.runExecCmd("ps", object: ExecCallback{
             override fun std(str: String) {
                 println(str)
-                dataList.add(mapOf(KEY_PROCESS_NAME to str))
+                val arrayStr = str.split("\\s+".toRegex())
+                dataList.add(mapOf(KEY_PROCESS_NAME to arrayStr[arrayStr.size-1]))
             }
         })
         execCmd.waitFor()
@@ -115,6 +116,9 @@ class MainActivity : AppCompatActivity() {
 
             view.apply {
                 findViewById<TextView>(R.id.textview_processName).text = innerDataList[position][KEY_PROCESS_NAME].toString()
+                findViewById<TextView>(R.id.textview_uid).visibility = View.GONE
+                findViewById<TextView>(R.id.textview_pid).visibility = View.GONE
+                findViewById<TextView>(R.id.textview_pkg).visibility = View.GONE
             }
 
             return view
