@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         button_installed.setOnClickListener(View.OnClickListener {
-            runExecCmd("ls -l")
+            runExecCmd("ps")
         })
     }
 

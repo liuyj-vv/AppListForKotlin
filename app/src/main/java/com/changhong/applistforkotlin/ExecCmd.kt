@@ -63,7 +63,7 @@ fun printExecMessage(tag: String, input: InputStream) {
             }
         }
 
-        logi("这里是$tag end: ${Thread.currentThread().name} ${input.toString()}")
+        logi("这里是$tag end: ${Thread.currentThread().name}")
     }
 }
 
