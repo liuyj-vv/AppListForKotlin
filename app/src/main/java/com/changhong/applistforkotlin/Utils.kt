@@ -1,8 +1,6 @@
 package com.changhong.applistforkotlin
 
 import android.util.Log
-import java.util.concurrent.Executors
-import kotlin.concurrent.thread
 
 inline infix fun <T : Any> T?.ifNull(block: (T?) -> T): T {
     if (this == null) {
@@ -11,13 +9,8 @@ inline infix fun <T : Any> T?.ifNull(block: (T?) -> T): T {
     return this
 }
 
-
 fun logi(msg: String) {
     Log.i("exec", msg)
-}
-
-fun execThread(f: () -> Unit) {
-    Executors.newSingleThreadExecutor().execute(f)
 }
 
 interface ExecCallback {
