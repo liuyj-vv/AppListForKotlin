@@ -15,6 +15,20 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
+import android.app.ActivityManager.RunningAppProcessInfo
+import android.content.pm.PackageManager
+import android.R.attr.process
+import com.jaredrummler.android.processes.models.AndroidProcess
+import com.jaredrummler.android.processes.AndroidProcesses
+import com.jaredrummler.android.processes.models.AndroidAppProcess
+import android.content.pm.PackageInfo
+import com.jaredrummler.android.processes.models.Statm
+import com.jaredrummler.android.processes.models.Stat
+
+
+
+
+
 
 class MainActivity : AppCompatActivity() {
     lateinit var listBaseAdapter: ListBaseAdapter
@@ -31,7 +45,45 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    fun getRunningAppsInfo() : List<RunningAppProcessInfo>{
+        val runningAppsInfo = ArrayList<RunningAppProcessInfo>()
+        var packageManager: PackageManager = baseContext.packageManager
+        var activityManager: ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        var runningServiceList: MutableList<ActivityManager.RunningServiceInfo>? = activityManager.getRunningServices(Int.MAX_VALUE)
+
+        if (runningServiceList != null) {
+            for (runningService in runningServiceList) {
+                val pkgName = runningService.process.split(":")[0]
+            }
+
+        }
+        return runningAppsInfo
+    }
+
     fun updateDataList() {
+
+        getRunningAppsInfo()
+        val androidProcesses = AndroidProcesses.getRunningAppProcesses()
+        for (process in androidProcesses) {
+            // Get some information about the process
+            val processName = process.name
+
+            val stat = process.stat()
+            val pid = stat.getPid()
+            val parentProcessId = stat.ppid()
+            val startTime = stat.stime()
+            val policy = stat.policy()
+            val state = stat.state()
+
+            val statm = process.statm()
+            val totalSizeOfProcess = statm.getSize()
+            val residentSetSize = statm.getResidentSetSize()
+
+            val packageInfo = process.getPackageInfo(baseContext, 0)
+            val appName = packageInfo.applicationInfo.loadLabel(baseContext.packageManager).toString()
+        }
+
+
         dataList.clear()
         var activityManager:ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         var runningAppProcessInfo = activityManager.runningAppProcesses
