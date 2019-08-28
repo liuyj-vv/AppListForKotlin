@@ -17,52 +17,36 @@ import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.content.pm.PackageManager
-
-
-
-
-
+import android.widget.Toast
 
 
 class MainActivity : AppCompatActivity() {
-    lateinit var listBaseAdapter: ListBaseAdapter
-    var dataList = arrayListOf<Map<String, Any>>()
+    val KEY_PROCESS_NAME = "processName"
+    val KEY_UID = "uid"
+    val KEY_PID = "pid"
+    val KEY_PKGS = "pkgs"
+    val dataList = arrayListOf<Map<String, Any>>()
+    var adapter: ListPsBaseAdapter? = null
+    private val execCmd: ExecCmd = ExecCmd()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        listBaseAdapter = ListBaseAdapter(dataList)
-        listview.adapter = listBaseAdapter
-
         button_running.setOnClickListener(View.OnClickListener {
+            val adapter = ListBaseAdapter(dataList)
+            listview.adapter = adapter
             updateDataList()
+            adapter.notifyDataSetChanged()
         })
 
         button_installed.setOnClickListener(View.OnClickListener {
-            runExecCmd("ps")
+            adapter = ListPsBaseAdapter(dataList)
+            listview.adapter = adapter
+            updatePsDataList()
+            adapter?.notifyDataSetChanged()
         })
     }
-
-    fun getRunningAppsInfo() : List<RunningAppProcessInfo>{
-        val runningAppsInfo = ArrayList<RunningAppProcessInfo>()
-        var packageManager: PackageManager = baseContext.packageManager
-        var activityManager: ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        var runningServiceList: MutableList<ActivityManager.RunningServiceInfo>? = activityManager.getRunningServices(Int.MAX_VALUE)
-
-        if (runningServiceList != null) {
-            for (runningService in runningServiceList) {
-                val pkgName = runningService.process.split(":")[0]
-            }
-
-        }
-        return runningAppsInfo
-    }
-
     fun updateDataList() {
-
-//        getRunningAppsInfo()
-
-
         dataList.clear()
         var activityManager:ActivityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         var runningAppProcessInfo = activityManager.runningAppProcesses
@@ -70,32 +54,68 @@ class MainActivity : AppCompatActivity() {
             var map = mutableMapOf<String, Any>()
             var pkgList = arrayListOf<String>()
 
-            map.put("processName", runningAppProcessInfo.processName)
-            map.put("uid", runningAppProcessInfo.uid.toString())
-            map.put("pid", runningAppProcessInfo.pid.toString())
+            map.apply {
+                put(KEY_PROCESS_NAME, runningAppProcessInfo.processName)
+                put(KEY_UID, runningAppProcessInfo.uid.toString())
+                put(KEY_PID, runningAppProcessInfo.pid.toString())
+            }
 
             for(pkg in runningAppProcessInfo.pkgList) {
                 pkgList.add(pkg)
             }
-            map.put("pkgs", pkgList)
+            map.put(KEY_PKGS, pkgList)
 
             dataList.add(map)
         }
-
-        listBaseAdapter.notifyDataSetChanged()
     }
 
     inner class ListBaseAdapter(dataList: List<Map<String, Any>>): BaseAdapter() {
-        private var innerDataList = dataList
+        private val innerDataList = dataList
         @RequiresApi(Build.VERSION_CODES.O)
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-            var layoutInflater = LayoutInflater.from(parent?.context)
-            var view = layoutInflater.inflate(R.layout.layout_listview_item, parent, false)
+            val view = LayoutInflater.from(parent?.context).inflate(R.layout.layout_listview_item, parent, false)
 
-            view.findViewById<TextView>(R.id.textview_processName).text = innerDataList[position]["processName"].toString()
-            view.findViewById<TextView>(R.id.textview_uid).text = innerDataList[position]["uid"].toString()
-            view.findViewById<TextView>(R.id.textview_pid).text = innerDataList[position]["pid"].toString()
-            view.findViewById<TextView>(R.id.textview_pkg).text = innerDataList[position]["pkgs"].toString()
+            view.apply {
+                findViewById<TextView>(R.id.textview_processName).text = innerDataList[position][KEY_PROCESS_NAME].toString()
+                findViewById<TextView>(R.id.textview_uid).text = innerDataList[position][KEY_UID].toString()
+                findViewById<TextView>(R.id.textview_pid).text = innerDataList[position][KEY_PID].toString()
+                findViewById<TextView>(R.id.textview_pkg).text = innerDataList[position][KEY_PKGS].toString()
+            }
+            return view
+        }
+
+        override fun getItem(position: Int): Any {
+            return innerDataList.get(position)
+        }
+
+        override fun getItemId(position: Int): Long {
+            return position.toLong()
+        }
+
+        override fun getCount(): Int {
+            return innerDataList.size
+        }
+    }
+
+    fun updatePsDataList() {
+        dataList.clear()
+        execCmd.runExecCmd("ps", object: ExecCallback{
+            override fun std(str: String) {
+                println(str)
+                dataList.add(mapOf(KEY_PROCESS_NAME to str))
+            }
+        })
+        execCmd.waitFor()
+    }
+
+    inner class ListPsBaseAdapter(dataList: List<Map<String, Any>>): BaseAdapter() {
+        private val innerDataList = dataList
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val view = LayoutInflater.from(parent?.context).inflate(R.layout.layout_listview_item, parent, false)
+
+            view.apply {
+                findViewById<TextView>(R.id.textview_processName).text = innerDataList[position][KEY_PROCESS_NAME].toString()
+            }
 
             return view
         }

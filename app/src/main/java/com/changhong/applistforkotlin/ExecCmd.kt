@@ -1,76 +1,81 @@
 package com.changhong.applistforkotlin
-
-import android.util.Log
 import java.io.BufferedReader
-import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.util.concurrent.Executors
+import java.util.concurrent.locks.ReentrantLock
 
-inline infix fun <T : Any> T?.ifNull(block: (T?) -> T): T {
-    if (this == null) {
-        return block(this)
-    }
-    return this
-}
+class ExecCmd{
+    val lock = ReentrantLock()
+    private var process: Process? = null
+    private var threadWait: Thread? = null
+    private var threadStdout: Thread? = null
+    private var threadStderr: Thread? = null
 
+    fun runExecCmd(cmd: String, execCallback: ExecCallback? = null) {
+        lock.lock()
+        val command = arrayOf("sh", "-c", cmd)
+        val runtime = Runtime.getRuntime()
 
-fun logi(msg: String) {
-    Log.i("exec", msg)
-}
+        logi("[[[[[ start ]]]]]  ${command[0]} ${command[1]} ${command[2]} =================== ")
+        process = runtime.exec(command)
 
-fun execThread(f: () -> Unit) {
-    Executors.newSingleThreadExecutor().execute(f)
-}
+        threadStdout = printExecStdoutMessage(process, execCallback)
+        threadStderr = printExecStderrMessage(process, execCallback)
 
-fun runExecCmd(cmd: String) {
-    var process: Process?
-    val command = arrayOf("sh", "-c", cmd)
-    val runtime = Runtime.getRuntime()
-
-    logi("[[[[[ start ]]]]]  ${command[0]} ${command[1]} ${command[2]} =================== ")
-    process = runtime.exec(command)
-    printExecStdoutMessage(process)
-    printExecStderrMessage(process)
-
-    process?.let { it ->
-        execThread {
-            it.waitFor()
-            it.destroy()
-            process = null
-            logi("[[[[[ end ]]]]]  ${command[0]} ${command[1]} ${command[2]} =================== ")
-        }
-    }
-}
-
-fun printExecMessage(tag: String, input: InputStream) {
-    execThread {
-        logi("这里是$tag start: ${Thread.currentThread().name} ${input.toString()}")
-
-        InputStreamReader(input).use { reader ->
-            BufferedReader(reader).use { bufferedReader ->
-                while (true) {
-                    try {
-                        bufferedReader.readLine()?.let {
-                            logi("$tag: $it")
-                        } ifNull {
-                            Thread.sleep(100)
-                        }
-                    } catch (e: Exception) {
-                        break
-                    }
-                }
+        process?.let { it ->
+            threadWait = Thread {
+                it.waitFor()
+                it.destroy()
+                process = null
+                logi("[[[[[ end ]]]]]  ${command[0]} ${command[1]} ${command[2]} =================== ")
             }
         }
 
-        logi("这里是$tag end: ${Thread.currentThread().name}")
+        threadWait?.start()
+        threadStderr?.start()
+        threadStdout?.start()
+
+        lock.unlock()
     }
-}
 
-fun printExecStdoutMessage(process: Process?) {
-    process?.inputStream?.let { printExecMessage("stdout", it) }
-}
+    fun waitFor() {
+        threadWait?.join()
+        threadStdout?.join()
+        threadStderr?.join()
+    }
 
-fun printExecStderrMessage(process: Process?) {
-    process?.errorStream?.let { printExecMessage("stderr", it) }
+    fun printExecMessage(tag: String, input: InputStream, execCallback: ExecCallback? = null): Thread {
+        return Thread {
+            var count: Int = 0;
+            logi("这里是$tag start: ${Thread.currentThread().name}")
+
+            InputStreamReader(input).use { reader ->
+                BufferedReader(reader).use { bufferedReader ->
+                    while (true) {
+                        try {
+                            bufferedReader.readLine()?.let {
+                                //logi("$tag: $it")
+                                count++
+                                execCallback?.std(it)
+                            } ifNull {
+                                Thread.sleep(100)
+                            }
+                        } catch (e: Exception) {
+                            break
+                        }
+                    }
+                }
+            }
+
+            logi("这里是$tag end: ${Thread.currentThread().name} $count")
+        }
+    }
+
+    fun printExecStdoutMessage(process: Process?, execCallback: ExecCallback? = null): Thread? {
+        process?.inputStream?.let { return printExecMessage("stdout", it, execCallback) } ?: return null
+    }
+
+    fun printExecStderrMessage(process: Process?, execCallback: ExecCallback? = null): Thread? {
+        process?.errorStream?.let { return printExecMessage("stderr", it, execCallback) } ?: return null
+    }
 }
