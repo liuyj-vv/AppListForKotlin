@@ -25,19 +25,20 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        button_running.setOnClickListener(View.OnClickListener {
+        
+        button_running.setOnClickListener {
             val adapter = ListBaseAdapter(dataList)
             listview.adapter = adapter
             updateDataList()
             adapter.notifyDataSetChanged()
-        })
+        }
 
-        button_installed.setOnClickListener(View.OnClickListener {
+        button_installed.setOnClickListener {
             adapter = ListPsBaseAdapter(dataList)
             listview.adapter = adapter
             updatePsDataList()
             adapter?.notifyDataSetChanged()
-        })
+        }
     }
     fun updateDataList() {
         dataList.clear()
