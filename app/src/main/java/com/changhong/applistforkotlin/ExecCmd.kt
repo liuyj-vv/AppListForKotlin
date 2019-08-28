@@ -7,6 +7,14 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.concurrent.Executors
 
+inline infix fun <T : Any> T?.ifNull(block: (T?) -> T): T {
+    if (this == null) {
+        return block(this)
+    }
+    return this
+}
+
+
 fun logi(msg: String) {
     Log.i("exec", msg)
 }
@@ -45,7 +53,9 @@ fun printExecMessage(tag: String, input: InputStream) {
                     try {
                         bufferedReader.readLine()?.let {
                             logi("$tag: $it")
-                        } ?: Thread.sleep(100)
+                        } ifNull {
+                            Thread.sleep(100)
+                        }
                     } catch (e: Exception) {
                         break
                     }
