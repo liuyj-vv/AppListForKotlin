@@ -6,19 +6,12 @@ import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.annotation.RequiresApi
-import android.util.ArrayMap
-import android.util.ArraySet
-import android.view.ContextMenu
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
-import android.app.ActivityManager.RunningAppProcessInfo
-import android.content.pm.PackageManager
-import android.widget.Toast
-
 
 class MainActivity : AppCompatActivity() {
     val KEY_PROCESS_NAME = "processName"
