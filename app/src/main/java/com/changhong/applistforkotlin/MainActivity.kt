@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -21,7 +22,8 @@ class MainActivity : AppCompatActivity() {
     val KEY_PID = "pid"
     val KEY_PKGS = "pkgs"
     val dataList = arrayListOf<Map<String, Any>>()
-    var adapter: ListPsBaseAdapter? = null
+    private val adapter = ListBaseAdapter(dataList)
+    private val psAdapter = ListPsBaseAdapter(dataList)
     private val execCmd: ExecCmd = ExecCmd()
     val handler = Handler()
 
@@ -30,16 +32,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         button_running.setOnClickListener {
-            val adapter = ListBaseAdapter(dataList)
-            listview.adapter = adapter
-            updateDataList()
-            adapter.notifyDataSetChanged()
+            if (listview.adapter is ListBaseAdapter) {
+                updateDataList()
+                adapter.notifyDataSetChanged()
+            } else {
+                listview.adapter = adapter
+                updateDataList()
+                adapter.notifyDataSetChanged()
+            }
         }
 
+        listview.adapter = psAdapter
         button_installed.setOnClickListener {
-            adapter = ListPsBaseAdapter(dataList)
-            listview.adapter = adapter
-            updatePsDataList()
+            if (listview.adapter is ListPsBaseAdapter) {
+                updatePsDataList()
+            } else {
+                listview.adapter = psAdapter
+                updatePsDataList()
+            }
         }
     }
     private fun updateDataList() {
@@ -94,9 +104,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun updatePsDataList() {
-        dataList.clear()
         thread {
-            execCmd.runExecCmd("ps", object: ExecCallback{
+            dataList.clear()
+                execCmd.runExecCmd("ps", object: ExecCallback{
                 override fun std(str: String) {
                     println(str)
                     val arrayStr = str.split("\\s+".toRegex())
@@ -105,7 +115,7 @@ class MainActivity : AppCompatActivity() {
             })
             execCmd.waitFor()
             handler.post{
-                adapter?.notifyDataSetChanged()
+                psAdapter?.notifyDataSetChanged()
             }
         }
     }

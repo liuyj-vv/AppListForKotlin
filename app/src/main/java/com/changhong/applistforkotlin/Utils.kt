@@ -13,6 +13,11 @@ fun logi(msg: String) {
     Log.i("exec", msg)
 }
 
+
+fun logii(msg: String) {
+    Log.i("sssssssssssssssss", msg)
+}
+
 interface ExecCallback {
     fun std(str: String) //其他名称都可以不写operator
 }
